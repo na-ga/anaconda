@@ -19,8 +19,8 @@ type Image struct {
 }
 
 type ChunkedMedia struct {
-	MediaID       int64  `json:"media_id"`
-	MediaIDString string `json:"media_id_string"`
+	MediaID          int64  `json:"media_id"`
+	MediaIDString    string `json:"media_id_string"`
 	ExpiresAfterSecs int    `json:"expires_after_secs"`
 }
 
@@ -29,11 +29,17 @@ type Video struct {
 }
 
 type VideoMedia struct {
-	MediaID       int64  `json:"media_id"`
-	MediaIDString string `json:"media_id_string"`
-	Size          int    `json:"size"`
-	ExpiresAfterSecs int    `json:"expires_after_secs"`
-	Video Video `json:"video"`
+	MediaID          int64          `json:"media_id"`
+	MediaIDString    string         `json:"media_id_string"`
+	Size             int            `json:"size"`
+	ExpiresAfterSecs int            `json:"expires_after_secs"`
+	Video            Video          `json:"video"`
+	ProcessingInfo   ProcessingInfo `json:"processing_info"`
+}
+
+type ProcessingInfo struct {
+	State         string `json:"state"`
+	CheckAfterSec int    `json:"check_after_secs"`
 }
 
 func (a TwitterApi) UploadMedia(base64String string) (media Media, err error) {
@@ -47,11 +53,14 @@ func (a TwitterApi) UploadMedia(base64String string) (media Media, err error) {
 	return mediaResponse, (<-response_ch).err
 }
 
-func (a TwitterApi) UploadVideoInit(totalBytes int, mimeType string) (chunkedMedia ChunkedMedia, err error) {
+func (a TwitterApi) UploadVideoInit(totalBytes int, mimeType string, mediaCategory string) (chunkedMedia ChunkedMedia, err error) {
 	v := url.Values{}
 	v.Set("command", "INIT")
 	v.Set("media_type", mimeType)
 	v.Set("total_bytes", strconv.FormatInt(int64(totalBytes), 10))
+	if mediaCategory != "" {
+		v.Set("media_category", mediaCategory)
+	}
 
 	var mediaResponse ChunkedMedia
 
@@ -60,9 +69,9 @@ func (a TwitterApi) UploadVideoInit(totalBytes int, mimeType string) (chunkedMed
 	return mediaResponse, (<-response_ch).err
 }
 
-func (a TwitterApi) UploadVideoAppend(mediaIdString string, 
+func (a TwitterApi) UploadVideoAppend(mediaIdString string,
 	segmentIndex int, base64String string) error {
-	
+
 	v := url.Values{}
 	v.Set("command", "APPEND")
 	v.Set("media_id", mediaIdString)
